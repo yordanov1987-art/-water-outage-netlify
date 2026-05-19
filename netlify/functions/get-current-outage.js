@@ -1,6 +1,6 @@
 const { getStore } = require("@netlify/blobs");
 
-const store = getStore({ name: "water-outages" });
+const store = getStore("water-outages");
 
 function jsonResponse(statusCode, payload) {
   return {
