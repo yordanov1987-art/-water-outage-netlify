@@ -1,6 +1,3 @@
-const { getStore } = require("@netlify/blobs");
-
-const store = getStore("water-outages");
 function jsonResponse(statusCode, payload) {
   return {
     statusCode,
@@ -10,6 +7,25 @@ function jsonResponse(statusCode, payload) {
     },
     body: JSON.stringify(payload),
   };
+}
+
+async function loadStore() {
+  const mod = await import("@netlify/blobs");
+  const getStore =
+    (mod && typeof mod.getStore === "function" && mod.getStore)
+    || (mod && mod.default && typeof mod.default.getStore === "function" && mod.default.getStore);
+  if (typeof getStore !== "function") {
+    throw new Error("Netlify Blobs getStore() is not available in this runtime.");
+  }
+  const siteID = process.env.SITE_ID || process.env.NETLIFY_BLOBS_SITE_ID || "";
+  const token = process.env.NETLIFY_BLOBS_TOKEN || "";
+  if (!siteID) {
+    throw new Error("Missing SITE_ID for Netlify Blobs.");
+  }
+  if (!token) {
+    throw new Error("Missing NETLIFY_BLOBS_TOKEN environment variable.");
+  }
+  return getStore("water-outages", { siteID, token });
 }
 
 function siteBaseUrl() {
@@ -53,20 +69,29 @@ exports.handler = async (event) => {
     return jsonResponse(400, { error: "Announcement text is required." });
   }
 
-  const publishedAt = new Date().toISOString();
-  const record = {
-    ...payload,
-    published_at: payload.published_at || publishedAt,
-    updated_at: publishedAt,
-  };
+  try {
+    const store = await loadStore();
+    const publishedAt = new Date().toISOString();
+    const record = {
+      ...payload,
+      published_at: payload.published_at || publishedAt,
+      updated_at: publishedAt,
+    };
 
-  const archiveKey = `history/${publishedAt.replace(/[:.]/g, "-")}.json`;
-  await store.setJSON("current", record);
-  await store.setJSON(archiveKey, record);
+    const archiveKey = `history/${publishedAt.replace(/[:.]/g, "-")}.json`;
+    await store.setJSON("current", record);
+    await store.setJSON(archiveKey, record);
 
-  return jsonResponse(200, {
-    ok: true,
-    archive_key: archiveKey,
-    public_url: siteBaseUrl() || null,
-  });
+    return jsonResponse(200, {
+      ok: true,
+      archive_key: archiveKey,
+      public_url: siteBaseUrl() || null,
+    });
+  } catch (error) {
+    return jsonResponse(500, {
+      error: error && error.message ? error.message : String(error),
+      runtime: process.version,
+      function: "publish-outage",
+    });
+  }
 };

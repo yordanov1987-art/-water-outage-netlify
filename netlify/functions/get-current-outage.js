@@ -17,7 +17,15 @@ async function loadStore() {
   if (typeof getStore !== "function") {
     throw new Error("Netlify Blobs getStore() is not available in this runtime.");
   }
-  return getStore("water-outages");
+  const siteID = process.env.SITE_ID || process.env.NETLIFY_BLOBS_SITE_ID || "";
+  const token = process.env.NETLIFY_BLOBS_TOKEN || "";
+  if (!siteID) {
+    throw new Error("Missing SITE_ID for Netlify Blobs.");
+  }
+  if (!token) {
+    throw new Error("Missing NETLIFY_BLOBS_TOKEN environment variable.");
+  }
+  return getStore("water-outages", { siteID, token });
 }
 
 exports.handler = async () => {
