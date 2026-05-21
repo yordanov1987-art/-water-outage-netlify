@@ -1,4 +1,4 @@
-const statusText = document.getElementById("status-text");
+﻿const statusText = document.getElementById("status-text");
 const emptyState = document.getElementById("empty-state");
 const noticeCard = document.getElementById("notice-card");
 const mapCard = document.getElementById("map-card");
@@ -119,7 +119,7 @@ function renderGroupedSettlements(container, groups) {
   if (!values.length) {
     const block = document.createElement("div");
     block.className = "settlement-block";
-    block.innerHTML = "<h4>Няма подадени улици</h4><p class=\"subtle\">Няма публикувана допълнителна информация за засегнати улици.</p>";
+    block.innerHTML = '<h4>Няма подадени улици</h4><p class="subtle">Няма публикувана допълнителна информация за засегнати улици.</p>';
     container.appendChild(block);
     return;
   }
@@ -159,7 +159,7 @@ function incidentLatLng(point) {
   return [Number(point.coordinates[1]), Number(point.coordinates[0])];
 }
 
-function buildNoticeEntry(notice, index) {
+function buildNoticeEntry(notice, index, totalCount) {
   const wrapper = document.createElement("section");
   wrapper.className = "notice-entry";
 
@@ -167,16 +167,23 @@ function buildNoticeEntry(notice, index) {
   header.className = "notice-entry-header";
 
   const headingBox = document.createElement("div");
+  if (totalCount > 1) {
+    const kicker = document.createElement("p");
+    kicker.className = "notice-entry-kicker";
+    kicker.textContent = `Обявление ${index + 1}`;
+    headingBox.appendChild(kicker);
+  }
+
   const title = document.createElement("h3");
-  title.textContent = `Обявление ${index + 1}`;
+  title.textContent = notice.incident_display || (totalCount > 1 ? `Събитие ${index + 1}` : "Авария / ремонт");
   headingBox.appendChild(title);
 
-  const incident = document.createElement("p");
-  incident.className = "subtle";
-  incident.textContent = notice.incident_display
-    ? `Място на аварията/ремонта: ${notice.incident_display}`
-    : "Място на аварията/ремонта: не е посочено";
-  headingBox.appendChild(incident);
+  if (notice.incident_display) {
+    const incident = document.createElement("p");
+    incident.className = "subtle";
+    incident.textContent = `Място на аварията/ремонта: ${notice.incident_display}`;
+    headingBox.appendChild(incident);
+  }
   header.appendChild(headingBox);
 
   const meta = document.createElement("div");
@@ -197,35 +204,31 @@ function buildNoticeEntry(notice, index) {
   grid.className = "notice-entry-grid";
 
   const article = document.createElement("article");
-  article.className = "content";
-  const articleTitle = document.createElement("h4");
-  articleTitle.textContent = "Текст на бюлетина";
-  article.appendChild(articleTitle);
+  article.className = "content content-primary";
   const pre = document.createElement("pre");
+  pre.className = "notice-entry-copy";
   pre.textContent = notice.text || "Няма текст на бюлетина.";
   article.appendChild(pre);
   grid.appendChild(article);
 
   const aside = document.createElement("aside");
-  aside.className = "content";
+  aside.className = "content content-secondary";
   const asideTitle = document.createElement("h4");
-  asideTitle.textContent = "Засегнати населени места и улици";
+  asideTitle.textContent = "Засегнати места";
   aside.appendChild(asideTitle);
   const grouped = document.createElement("div");
   grouped.className = "grouped-settlements";
   renderGroupedSettlements(grouped, groupedDataFromPayload(notice));
   aside.appendChild(grouped);
-
-  const publishedLabel = document.createElement("h4");
-  publishedLabel.textContent = "Публикувано";
-  aside.appendChild(publishedLabel);
-  const publishedValue = document.createElement("p");
-  publishedValue.className = "subtle";
-  publishedValue.textContent = formatDateTime(notice.updated_at || notice.published_at);
-  aside.appendChild(publishedValue);
   grid.appendChild(aside);
 
   wrapper.appendChild(grid);
+
+  const footer = document.createElement("div");
+  footer.className = "notice-entry-footer";
+  footer.textContent = `Публикувано / обновено: ${formatDateTime(notice.updated_at || notice.published_at)}`;
+  wrapper.appendChild(footer);
+
   return wrapper;
 }
 
@@ -353,7 +356,7 @@ function renderNotice(data) {
 
   noticeList.innerHTML = "";
   notices.forEach((notice, index) => {
-    noticeList.appendChild(buildNoticeEntry(notice, index));
+    noticeList.appendChild(buildNoticeEntry(notice, index, notices.length));
   });
 
   renderMap(data);
@@ -410,9 +413,9 @@ function calendarMetaText(entry) {
   if (!entry) {
     return "";
   }
-  const noticeCount = Number(entry.notice_count || 0);
-  if (noticeCount > 1) {
-    return `${noticeCount} бр.`;
+  const noticeCountValue = Number(entry.notice_count || 0);
+  if (noticeCountValue > 1) {
+    return `${noticeCountValue} бр.`;
   }
 
   const from = String(entry.time_from || "").trim();
