@@ -56,35 +56,22 @@
         <div class="notice-header">
           <div>
             <p id="notice-municipality" class="eyebrow muted"></p>
-            <h2 id="notice-title">Бюлетин за аварии и ремонти</h2>
+            <h2 id="notice-title">Бюлетини за избраната дата</h2>
           </div>
           <div class="meta">
             <div><span>Дата</span><strong id="notice-date">-</strong></div>
-            <div><span>Часове</span><strong id="notice-time">-</strong></div>
-            <div><span>Участъци</span><strong id="notice-count">-</strong></div>
+            <div><span>Обявления</span><strong id="notice-count">-</strong></div>
+            <div><span>Обновено</span><strong id="published-at">-</strong></div>
           </div>
         </div>
 
-        <div class="notice-grid">
-          <article class="content">
-            <h3>Текст на бюлетина</h3>
-            <pre id="notice-text"></pre>
-          </article>
-
-          <aside class="content">
-            <h3>Засегнати населени места и улици</h3>
-            <div id="grouped-settlements" class="grouped-settlements"></div>
-
-            <h3>Публикувано</h3>
-            <p id="published-at" class="subtle">-</p>
-          </aside>
-        </div>
+        <div id="notice-list" class="notice-list"></div>
       </section>
 
       <section id="map-card" class="card hidden">
         <div class="map-header">
           <h2>Карта на засегнатите участъци</h2>
-          <p class="subtle">Маркирани са участъците без вода и мястото на аварията/ремонта.</p>
+          <p class="subtle">Маркирани са участъците без вода и местата на авариите/ремонтите.</p>
         </div>
         <div id="map"></div>
       </section>

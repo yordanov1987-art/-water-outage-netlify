@@ -10,15 +10,13 @@ const nextMonthBtn = document.getElementById("next-month");
 const noticeMunicipality = document.getElementById("notice-municipality");
 const noticeTitle = document.getElementById("notice-title");
 const noticeDate = document.getElementById("notice-date");
-const noticeTime = document.getElementById("notice-time");
 const noticeCount = document.getElementById("notice-count");
-const noticeText = document.getElementById("notice-text");
-const groupedSettlements = document.getElementById("grouped-settlements");
 const publishedAt = document.getElementById("published-at");
+const noticeList = document.getElementById("notice-list");
 
 let map;
 let geojsonLayer;
-let incidentMarker;
+let incidentLayer;
 let availableEntries = [];
 let availableDateMap = new Map();
 let selectedDate = "";
@@ -71,6 +69,34 @@ function ensureMap() {
   return map;
 }
 
+function uniqueStrings(values) {
+  const seen = new Set();
+  const result = [];
+  for (const value of Array.isArray(values) ? values : []) {
+    const text = String(value || "").trim();
+    if (!text) {
+      continue;
+    }
+    const key = text.toLocaleLowerCase("bg-BG");
+    if (seen.has(key)) {
+      continue;
+    }
+    seen.add(key);
+    result.push(text);
+  }
+  return result;
+}
+
+function noticesFromPayload(data) {
+  if (Array.isArray(data && data.notices)) {
+    return data.notices;
+  }
+  if (data && typeof data === "object" && (data.text || data.notice_id || data.notice_date)) {
+    return [data];
+  }
+  return [];
+}
+
 function groupedDataFromPayload(data) {
   if (Array.isArray(data.settlement_groups) && data.settlement_groups.length) {
     return data.settlement_groups;
@@ -86,15 +112,15 @@ function groupedDataFromPayload(data) {
   return [{ settlement: firstSettlement, streets }];
 }
 
-function renderGroupedSettlements(groups) {
-  groupedSettlements.innerHTML = "";
+function renderGroupedSettlements(container, groups) {
+  container.innerHTML = "";
   const values = Array.isArray(groups) ? groups : [];
 
   if (!values.length) {
     const block = document.createElement("div");
     block.className = "settlement-block";
     block.innerHTML = "<h4>Няма подадени улици</h4><p class=\"subtle\">Няма публикувана допълнителна информация за засегнати улици.</p>";
-    groupedSettlements.appendChild(block);
+    container.appendChild(block);
     return;
   }
 
@@ -122,7 +148,7 @@ function renderGroupedSettlements(groups) {
       block.appendChild(list);
     }
 
-    groupedSettlements.appendChild(block);
+    container.appendChild(block);
   });
 }
 
@@ -133,11 +159,106 @@ function incidentLatLng(point) {
   return [Number(point.coordinates[1]), Number(point.coordinates[0])];
 }
 
-function renderMap(data) {
-  const features = data && data.geojson && Array.isArray(data.geojson.features) ? data.geojson.features : [];
-  const point = incidentLatLng(data && data.incident_point);
+function buildNoticeEntry(notice, index) {
+  const wrapper = document.createElement("section");
+  wrapper.className = "notice-entry";
 
-  if (!features.length && !point) {
+  const header = document.createElement("div");
+  header.className = "notice-entry-header";
+
+  const headingBox = document.createElement("div");
+  const title = document.createElement("h3");
+  title.textContent = `Обявление ${index + 1}`;
+  headingBox.appendChild(title);
+
+  const incident = document.createElement("p");
+  incident.className = "subtle";
+  incident.textContent = notice.incident_display
+    ? `Място на аварията/ремонта: ${notice.incident_display}`
+    : "Място на аварията/ремонта: не е посочено";
+  headingBox.appendChild(incident);
+  header.appendChild(headingBox);
+
+  const meta = document.createElement("div");
+  meta.className = "notice-entry-meta";
+
+  const timeBadge = document.createElement("span");
+  timeBadge.textContent = notice.time_from && notice.time_to ? `${notice.time_from} - ${notice.time_to}` : "Без часове";
+  meta.appendChild(timeBadge);
+
+  const countBadge = document.createElement("span");
+  countBadge.textContent = `${Number(notice.dry_feature_count || 0)} участъка`;
+  meta.appendChild(countBadge);
+  header.appendChild(meta);
+
+  wrapper.appendChild(header);
+
+  const grid = document.createElement("div");
+  grid.className = "notice-entry-grid";
+
+  const article = document.createElement("article");
+  article.className = "content";
+  const articleTitle = document.createElement("h4");
+  articleTitle.textContent = "Текст на бюлетина";
+  article.appendChild(articleTitle);
+  const pre = document.createElement("pre");
+  pre.textContent = notice.text || "Няма текст на бюлетина.";
+  article.appendChild(pre);
+  grid.appendChild(article);
+
+  const aside = document.createElement("aside");
+  aside.className = "content";
+  const asideTitle = document.createElement("h4");
+  asideTitle.textContent = "Засегнати населени места и улици";
+  aside.appendChild(asideTitle);
+  const grouped = document.createElement("div");
+  grouped.className = "grouped-settlements";
+  renderGroupedSettlements(grouped, groupedDataFromPayload(notice));
+  aside.appendChild(grouped);
+
+  const publishedLabel = document.createElement("h4");
+  publishedLabel.textContent = "Публикувано";
+  aside.appendChild(publishedLabel);
+  const publishedValue = document.createElement("p");
+  publishedValue.className = "subtle";
+  publishedValue.textContent = formatDateTime(notice.updated_at || notice.published_at);
+  aside.appendChild(publishedValue);
+  grid.appendChild(aside);
+
+  wrapper.appendChild(grid);
+  return wrapper;
+}
+
+function renderMap(data) {
+  const notices = noticesFromPayload(data);
+  const featureMap = new Map();
+  const featureCollection = [];
+  const points = [];
+
+  notices.forEach((notice) => {
+    const geojson = notice && notice.geojson && Array.isArray(notice.geojson.features)
+      ? notice.geojson.features
+      : [];
+    geojson.forEach((feature, index) => {
+      const props = feature && feature.properties ? feature.properties : {};
+      const featureKey = String(props.segment_key || `${notice.notice_id || "notice"}-${index}`);
+      if (featureMap.has(featureKey)) {
+        return;
+      }
+      featureMap.set(featureKey, true);
+      featureCollection.push(feature);
+    });
+
+    const point = incidentLatLng(notice && notice.incident_point);
+    if (point) {
+      points.push({
+        latlng: point,
+        label: notice.incident_display || "Място на аварията / ремонта",
+      });
+    }
+  });
+
+  if (!featureCollection.length && !points.length) {
     mapCard.classList.add("hidden");
     return;
   }
@@ -147,46 +268,51 @@ function renderMap(data) {
   if (geojsonLayer) {
     geojsonLayer.remove();
   }
-  if (incidentMarker) {
-    incidentMarker.remove();
+  if (incidentLayer) {
+    incidentLayer.remove();
   }
 
   geojsonLayer = null;
-  if (features.length) {
-    geojsonLayer = L.geoJSON(data.geojson, {
-      style: {
-        color: "#cf4332",
-        weight: 5,
-        opacity: 0.88,
+  if (featureCollection.length) {
+    geojsonLayer = L.geoJSON(
+      { type: "FeatureCollection", features: featureCollection },
+      {
+        style: {
+          color: "#cf4332",
+          weight: 5,
+          opacity: 0.88,
+        },
+        onEachFeature(feature, layer) {
+          const props = feature && feature.properties ? feature.properties : {};
+          const parts = [];
+          if (props.address) {
+            parts.push(`<b>Улица:</b> ${props.address}`);
+          }
+          if (props.settlement) {
+            parts.push(`<b>Населено място:</b> ${props.settlement}`);
+          }
+          if (props.src_layer || props.src_fid) {
+            parts.push(`<b>Източник:</b> ${props.src_layer || "-"} / FID ${props.src_fid || "-"}`);
+          }
+          layer.bindPopup(parts.join("<br>"));
+        },
       },
-      onEachFeature(feature, layer) {
-        const props = feature && feature.properties ? feature.properties : {};
-        const parts = [];
-        if (props.address) {
-          parts.push(`<b>Улица:</b> ${props.address}`);
-        }
-        if (props.settlement) {
-          parts.push(`<b>Населено място:</b> ${props.settlement}`);
-        }
-        if (props.src_layer || props.src_fid) {
-          parts.push(`<b>Източник:</b> ${props.src_layer || "-"} / FID ${props.src_fid || "-"}`);
-        }
-        layer.bindPopup(parts.join("<br>"));
-      },
-    }).addTo(mapInstance);
+    ).addTo(mapInstance);
   }
 
-  if (point) {
-    incidentMarker = L.marker(point, {
+  incidentLayer = L.featureGroup().addTo(mapInstance);
+  points.forEach((point) => {
+    const marker = L.marker(point.latlng, {
       icon: L.divIcon({
         className: "",
         html: '<div class="repair-marker" title="Авария / ремонт">🚧</div>',
         iconSize: [42, 42],
         iconAnchor: [21, 21],
       }),
-    }).addTo(mapInstance);
-    incidentMarker.bindPopup(data.incident_display || "Място на аварията / ремонта");
-  }
+    });
+    marker.bindPopup(point.label);
+    incidentLayer.addLayer(marker);
+  });
 
   const bounds = [];
   if (geojsonLayer) {
@@ -195,8 +321,11 @@ function renderMap(data) {
       bounds.push(geojsonBounds);
     }
   }
-  if (incidentMarker) {
-    bounds.push(L.latLngBounds([point, point]));
+  if (incidentLayer && incidentLayer.getLayers().length) {
+    const incidentBounds = incidentLayer.getBounds();
+    if (incidentBounds.isValid()) {
+      bounds.push(incidentBounds);
+    }
   }
 
   if (bounds.length === 1) {
@@ -208,20 +337,25 @@ function renderMap(data) {
 }
 
 function renderNotice(data) {
-  const groups = groupedDataFromPayload(data);
+  const notices = noticesFromPayload(data);
   emptyState.classList.add("hidden");
   noticeCard.classList.remove("hidden");
 
-  statusText.textContent = `Показан е бюлетинът за ${formatDateDisplay(data.notice_date)}.`;
-  noticeMunicipality.textContent = data.municipality || "Водоснабдяване - Дунав ЕООД гр. Разград";
-  noticeTitle.textContent = "Бюлетин за аварии и ремонти";
+  statusText.textContent = `Показани са ${notices.length || 0} бюлетина за ${formatDateDisplay(data.notice_date)}.`;
+  noticeMunicipality.textContent = uniqueStrings(notices.map((notice) => notice.municipality)).join(", ")
+    || "Водоснабдяване - Дунав ЕООД гр. Разград";
+  noticeTitle.textContent = notices.length > 1
+    ? "Бюлетини за избраната дата"
+    : "Бюлетин за избраната дата";
   noticeDate.textContent = data.notice_date_display || data.notice_date || "-";
-  noticeTime.textContent = data.time_from && data.time_to ? `${data.time_from} - ${data.time_to}` : "-";
-  noticeCount.textContent = String(data.dry_feature_count || 0);
-  noticeText.textContent = data.text || "Няма текст на бюлетина.";
-  publishedAt.textContent = formatDateTime(data.updated_at || data.published_at);
+  noticeCount.textContent = String(data.total_notice_count || notices.length || 0);
+  publishedAt.textContent = formatDateTime(data.updated_at || notices.map((notice) => notice.updated_at || notice.published_at).sort().slice(-1)[0]);
 
-  renderGroupedSettlements(groups);
+  noticeList.innerHTML = "";
+  notices.forEach((notice, index) => {
+    noticeList.appendChild(buildNoticeEntry(notice, index));
+  });
+
   renderMap(data);
 }
 
@@ -251,11 +385,13 @@ function chooseInitialDate(dates) {
 
 function setSelectedDate(dateValue) {
   selectedDate = dateValue || "";
+  const nextUrl = new URL(window.location.href);
   if (selectedDate) {
-    const nextUrl = new URL(window.location.href);
     nextUrl.searchParams.set("date", selectedDate);
-    history.replaceState({}, "", nextUrl);
+  } else {
+    nextUrl.searchParams.delete("date");
   }
+  history.replaceState({}, "", nextUrl);
   renderCalendar();
 }
 
@@ -268,6 +404,23 @@ function startOfCalendarMonth(date) {
   const weekday = (first.getDay() + 6) % 7;
   first.setDate(first.getDate() - weekday);
   return first;
+}
+
+function calendarMetaText(entry) {
+  if (!entry) {
+    return "";
+  }
+  const noticeCount = Number(entry.notice_count || 0);
+  if (noticeCount > 1) {
+    return `${noticeCount} бр.`;
+  }
+
+  const from = String(entry.time_from || "").trim();
+  const to = String(entry.time_to || "").trim();
+  if (from || to) {
+    return `${from}${to ? `-${to}` : ""}`.replace(/^-|-$|--/g, "");
+  }
+  return "";
 }
 
 function renderCalendar() {
@@ -309,7 +462,7 @@ function renderCalendar() {
 
     const meta = document.createElement("span");
     meta.className = "calendar-day-meta";
-    meta.textContent = entry ? `${entry.time_from || ""}${entry.time_to ? `-${entry.time_to}` : ""}`.replace(/^-|-$|--/g, "") : "";
+    meta.textContent = calendarMetaText(entry);
     dayBtn.appendChild(meta);
 
     dayBtn.addEventListener("click", async () => {
