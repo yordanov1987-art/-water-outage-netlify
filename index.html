@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Нарушено водоподаване</title>
+    <title>Бюлетин за аварии и ремонти</title>
     <link rel="preconnect" href="https://unpkg.com" />
     <link
       rel="stylesheet"
@@ -17,22 +17,46 @@
     <main class="page">
       <header class="hero">
         <div>
-          <p class="eyebrow">ВиК известия</p>
-          <h1>Текущо обявление за нарушено водоподаване</h1>
-          <p id="status-text" class="subtle">Зареждане на актуалното обявление...</p>
+          <p class="eyebrow">Водоснабдяване - Дунав ЕООД гр. Разград</p>
+          <h1>Бюлетин за аварии и ремонти</h1>
+          <p id="status-text" class="subtle">Зареждане на обявленията...</p>
         </div>
       </header>
 
+      <section id="calendar-card" class="card">
+        <div class="calendar-top">
+          <div>
+            <h2>Календар на събитията</h2>
+            <p class="subtle">Удебелените дати имат публикуван бюлетин.</p>
+          </div>
+          <div class="calendar-nav">
+            <button id="prev-month" type="button" class="ghost-btn" aria-label="Предишен месец">‹</button>
+            <strong id="calendar-month-label">-</strong>
+            <button id="next-month" type="button" class="ghost-btn" aria-label="Следващ месец">›</button>
+          </div>
+        </div>
+        <div class="calendar-weekdays" aria-hidden="true">
+          <span>Пн</span>
+          <span>Вт</span>
+          <span>Ср</span>
+          <span>Чт</span>
+          <span>Пт</span>
+          <span>Сб</span>
+          <span>Нд</span>
+        </div>
+        <div id="calendar-grid" class="calendar-grid"></div>
+      </section>
+
       <section id="empty-state" class="card hidden">
-        <h2>Няма публикувано активно обявление</h2>
-        <p>Когато диспечерът публикува от QGIS плъгина, то ще се появи тук.</p>
+        <h2>Няма публикуван бюлетин за избраната дата</h2>
+        <p>Когато има публикуван бюлетин, той ще се покаже тук.</p>
       </section>
 
       <section id="notice-card" class="card hidden">
         <div class="notice-header">
           <div>
             <p id="notice-municipality" class="eyebrow muted"></p>
-            <h2 id="notice-title">Нарушено водоподаване</h2>
+            <h2 id="notice-title">Бюлетин за аварии и ремонти</h2>
           </div>
           <div class="meta">
             <div><span>Дата</span><strong id="notice-date">-</strong></div>
@@ -43,16 +67,13 @@
 
         <div class="notice-grid">
           <article class="content">
-            <h3>Текст на обявлението</h3>
+            <h3>Текст на бюлетина</h3>
             <pre id="notice-text"></pre>
           </article>
 
           <aside class="content">
-            <h3>Засегнати улици</h3>
-            <ul id="streets-list" class="tag-list"></ul>
-
-            <h3>Населени места</h3>
-            <ul id="settlements-list" class="tag-list"></ul>
+            <h3>Засегнати населени места и улици</h3>
+            <div id="grouped-settlements" class="grouped-settlements"></div>
 
             <h3>Публикувано</h3>
             <p id="published-at" class="subtle">-</p>
@@ -63,7 +84,7 @@
       <section id="map-card" class="card hidden">
         <div class="map-header">
           <h2>Карта на засегнатите участъци</h2>
-          <p class="subtle">Показва участъците, които плъгинът е подал към Netlify.</p>
+          <p class="subtle">Маркирани са участъците без вода и мястото на аварията/ремонта.</p>
         </div>
         <div id="map"></div>
       </section>
@@ -76,4 +97,4 @@
     ></script>
     <script src="./app.js" defer></script>
   </body>
-  </html>
+</html>

@@ -42,7 +42,8 @@ body {
   font-weight: 700;
 }
 
-.eyebrow.muted {
+.eyebrow.muted,
+.subtle {
   color: var(--muted);
 }
 
@@ -66,10 +67,6 @@ h3 {
   font-size: 18px;
 }
 
-.subtle {
-  color: var(--muted);
-}
-
 .card {
   background: var(--panel);
   border: 1px solid var(--line);
@@ -84,6 +81,7 @@ h3 {
   display: none;
 }
 
+.calendar-top,
 .notice-header,
 .map-header {
   display: flex;
@@ -91,6 +89,87 @@ h3 {
   gap: 18px;
   align-items: flex-start;
   margin-bottom: 18px;
+}
+
+.calendar-nav {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.ghost-btn {
+  appearance: none;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.82);
+  color: var(--text);
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  font-size: 26px;
+  cursor: pointer;
+}
+
+.ghost-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.calendar-weekdays,
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.calendar-weekdays {
+  margin-bottom: 10px;
+  color: var(--muted);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.calendar-weekdays span,
+.calendar-day {
+  text-align: center;
+}
+
+.calendar-day {
+  min-height: 74px;
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.8);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 10px 8px;
+  cursor: pointer;
+}
+
+.calendar-day.outside-month {
+  opacity: 0.48;
+}
+
+.calendar-day.has-event {
+  font-weight: 800;
+  border-color: rgba(23, 107, 135, 0.45);
+  background: linear-gradient(180deg, rgba(223, 240, 245, 0.88), rgba(255, 255, 255, 0.95));
+}
+
+.calendar-day.selected {
+  border-color: var(--accent);
+  box-shadow: inset 0 0 0 2px rgba(23, 107, 135, 0.18);
+}
+
+.calendar-day-number {
+  font-size: 18px;
+}
+
+.calendar-day-meta {
+  font-size: 11px;
+  color: var(--muted);
+  min-height: 18px;
 }
 
 .meta {
@@ -122,7 +201,7 @@ h3 {
 
 .notice-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1.5fr) minmax(280px, 0.9fr);
+  grid-template-columns: minmax(0, 1.5fr) minmax(300px, 0.9fr);
   gap: 18px;
 }
 
@@ -142,28 +221,35 @@ pre {
   line-height: 1.65;
 }
 
-.tag-list {
-  list-style: none;
-  margin: 0 0 18px;
-  padding: 0;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
+.grouped-settlements {
+  display: grid;
+  gap: 14px;
 }
 
-.tag-list li {
-  background: var(--accent-soft);
-  border: 1px solid rgba(23, 107, 135, 0.18);
-  color: var(--accent);
-  border-radius: 999px;
-  padding: 8px 12px;
-  font-size: 14px;
-  font-weight: 600;
+.settlement-block {
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 14px;
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.settlement-block h4 {
+  margin: 0 0 10px;
+  font-size: 17px;
+}
+
+.settlement-block ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.settlement-block li + li {
+  margin-top: 6px;
 }
 
 #map {
   width: 100%;
-  min-height: 440px;
+  min-height: 460px;
   border-radius: 18px;
   overflow: hidden;
   border: 1px solid var(--line);
@@ -173,7 +259,22 @@ pre {
   font-family: "Segoe UI", "Noto Sans", sans-serif;
 }
 
+.repair-marker {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: rgba(207, 67, 50, 0.92);
+  color: #fff;
+  border: 3px solid rgba(255, 255, 255, 0.96);
+  box-shadow: 0 10px 20px rgba(102, 28, 20, 0.32);
+  font-size: 22px;
+  line-height: 1;
+}
+
 @media (max-width: 900px) {
+  .calendar-top,
   .notice-header,
   .map-header,
   .notice-grid {
@@ -183,6 +284,15 @@ pre {
 
   .meta {
     grid-template-columns: 1fr;
+  }
+
+  .calendar-grid {
+    gap: 6px;
+  }
+
+  .calendar-day {
+    min-height: 64px;
+    padding: 8px 6px;
   }
 
   .page {
