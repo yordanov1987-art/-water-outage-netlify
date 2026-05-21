@@ -24,6 +24,13 @@ let availableDateMap = new Map();
 let selectedDate = "";
 let visibleMonth = null;
 
+function localDateKey(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 function formatDateTime(value) {
   if (!value) {
     return "-";
@@ -229,7 +236,7 @@ function chooseInitialDate(dates) {
     return fromQuery;
   }
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = localDateKey(new Date());
   if (values.includes(today)) {
     return today;
   }
@@ -279,7 +286,7 @@ function renderCalendar() {
 
   for (let index = 0; index < 42; index += 1) {
     const loopDate = new Date(cursor);
-    const dateValue = loopDate.toISOString().slice(0, 10);
+    const dateValue = localDateKey(loopDate);
     const entry = availableDateMap.get(dateValue);
     const isCurrentMonth = monthKey(loopDate) === activeMonthKey;
     const dayBtn = document.createElement("button");
